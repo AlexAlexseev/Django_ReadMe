@@ -1,0 +1,186 @@
+I
+1. Создание вертуальной среды																	|pip freeze > requirements.txt
+	python -m virtualenv ll_env	 |bash python -m venv venv 			|pip install -r requirements.txt
+2. Активация виртуальной среды														     
+	ll_env\scripts\activate	// 	ll_env\scripts\deactivate |bash source venv/Scripts/activate	
+3. Установка Django
+	pip install django
+4. Создание проекта Django 											
+	django-admin.exe startproject learning_log . 
+	(путь к django-admin.exe)
+5. Создание базы данных БД
+	python manage.py migrate	создается db.sqlite3
+6. Запуск проекта python manage.py runserver
+	python manage.py runserver
+7. Старт приложения в отдельном окне CMD
+	python manage.py startapp learning_logs
+8. Определение моделей в файле models 
+	Например class Topic в models
+9. Активация моделей 
+	Прописать папку запущенного приложения (learning_logs)
+	в файл setting.py в INSTALLED_APPS = () первым
+10. Привязать базу данных БД к приложению
+	python manage.py makemigrations learning_logs
+	- Create model Topic
+11. Обновление базы данных БД для внедрения Topic
+	python manage.py migrate
+	Applying learning_logs.0001_initial... OK
+12. Создание SuperAdmin для сайта
+	a) python manage.py createsuperuser
+	Username: указывает ll_admin
+	Password: укавывем пароль
+	b) Регистрация моделей на административном сайте
+	admin.py > from.models import Topic
+	admin.site.register(Topic)
+13. Добавление тем в модели через localhost:8000\admin
+14. Определение модели Entry в models.py
+	Назначение связей в моделях, один к одному, один к многим и тд.
+15. Миграция модели Entry
+	python manage.py makemigrations learning_logs
+	-Create model Entry
+	python manage.py migrate
+	-Applying learning_logs.0002_initial... OK
+16. Интерактивная оболочка shell
+	для тестирования и деагностики
+	python manage.py shell
+	Вывод Topics 
+	>>>from learning_logs.models import Topic
+	>>>Topic.objects.all()
+II
+17. Создание страниц: домашняя
+	Сопоставление URL
+
+	urls.py #learning_log.url
+		from django.contrib import admin
+		from django.urls import path, include #добавили
+
+	urlpatterns =[
+		path('admin/',admin.site.urls),
+		path('',include('learning_logs.urls')), #добавили
+	]
+	
+	urls.py #Создать в learning_logs
+		from django.urls import path
+		from . import views
+
+		app_name = 'learning_logs'
+		urlpatterns = [
+			#домашняя страница
+			path ('', views.index,name='index')]
+18. Написание представления views приложения в проекте
+	views.py
+		from django.shortcuts import render
+
+		def index(request):
+			return render (request, 'learning_log/index.html')
+19. Создание шаблона 
+	В папке приложения learning_logs создаем templates
+	в нем learning_logs
+	learning_log/learning_logs/templates/learning_logs/index.html
+	Шаблон в VS code + auto Close tag + auto Copmlete tag
+	shift + 1 + Tab
+III	
+20. Наследование шаблонов для других страниц. Родительский шаблон base.html
+	В папке learning_log/learning_logs/templates/learning_logs/
+	рядом с файлом index.html 
+	создаем файл base.html
+	C текстом-ссылкой 
+	<p> 
+	  <a href="{% url 'learning_log:index' %}"> Learning Log </a>
+	</p>
+	И блокирующим тегом для передачи информации из дочерних шаблонов
+	{% block content %}{% endblock content %}
+20. Наследование шаблонов для других страниц. Дочерний шаблон index.html
+	<!--Заменили заголовок на код родительского шаблона -  текст/ссылка из base.html-->
+	{% extends "learning_logs/base.html" %}
+
+	{% block content %}
+  	  <p>Learning Log helps you keep track of your learning, for any topic you're learning about.</p>>
+	{% endblock content%}
+21. Новая схема темы, добавляем http://localhost:8000/topics
+	Добавляем схему в urls.py в learning_logs
+	app_name = 'leaning_logs'
+	urlpatterns = [
+    #Домашняя страница
+    path ('',vews.index, name='index'),
+    path ('topics/', views.topics,name='topics')
+	]
+22. Представления Topics в файле view.py
+	#Добавляем импорт модели
+	from .models import Topic
+
+	#Добавляем функцию собирающую данные в базе и передающую в шаблон
+	def topics (request):
+    	#Выводим список тем
+    	topics = Topic.objects.order_by('date_added')
+   	 	context = {'topics':topics}
+    	return render(request, 'learning_logs/topics.html', context)
+	]
+23. Шаблон topics.html
+	{% extends "learning_logs/base.html" %} <!-- шаблон наследуется из base
+
+ 	{% block content %}
+	<p>Topics</p>
+
+	<ul>							<!-- объявление неупорядоченный список - bulleted
+      {% for topic in topics %}		<!-- начала цикла
+        <li>{{ topic }}</li>			<!-- вывод значений цикла в {{}} | <li> </li> элемент 																																				списка
+      {% empty %}																	<!-- исключение если тем нету
+        <li>No topics have been added yet.</li> 	<!-- текстовка для исключения
+      {% endfor %}																<!-- конец цикла
+    </ul>
+
+	{% endblock content %}
+	Затем добавить в базовый шаблон base.html  страницу с темами
+	<p> 
+	  <a href="{% url 'learning_log:index' %}"> Learning Log </a> - <!--добавили дефис
+	  <a href="{% url 'learning_log:index' %}"> Topics </a>
+	</p>
+-----Check----
+IV
+24. Схемы для тем с Id (отдельные темы)
+		например http://localhost/topics/1/
+		Добаваить  в urls.py
+		urlpatterns = [
+			#Страница с подробной ипформацией по отдельной теме
+			path('topics/<int:topic_id>/',views.topic,name='toppic'),
+		]
+25. Представление для темы с id (отделной темы)
+	def topic из view.py должна получить тему и записи из базы
+	def topic(request, topic_id):                             #еще один параметр
+    '''Вывод отну тему и все записи по ней'''
+    topic = Topic.objects.get(id=topic_id)									#get для получаения темы
+    entries = topic.entry_set_order_by('-date_added')				#загружаем записи в обр порядке
+    context = {'topic':topic,'entries':entries}						  #тема и записи сохр в list context
+    return render (request,'learning_logs/topic.html', context) #list context передается в topic.html
+26. Шаблон темы по id (отдельной темы)
+	Создать файл topic.html
+	{% extends "learning_logs/base.html" %}
+
+{% block content %}
+  <p>Topic:{{topic}}</p>   <!--Тема из шаблонной переменной {{topic}} - она есть в list context
+  
+  <p>Entries:</p>
+  <ul>												<!--список 
+  {% for entry in entries %}	<!--перебор запискй
+    <li>
+      <p>{{ entry.date_added|date:'M d, Y H:i' }}</p> <!--вывод аттрибута |спец фильтр 
+      <p>{{ entry.text|linebreaks }}</p>		<!--выводится данные из столца text | без разрывов
+    </li>
+  {% empty %}																<!--проверка на отсутствие записей
+    <li>There are no entries for this topic yet.</li>
+  {% endfor %}
+  </ul>
+
+{% endblock content %}
+26.Настройки шаблона списка тем topics.html для перевода на страницы с id
+	Изменить 
+		<li>{{ topic }}</li>
+	на		    
+	  <li>
+      <a href = "{% url 'leaning_logs:topic' topic.id %}">{{ topic }}</a>
+    </li>
+	
+	Для справки topic.id - проверка темы и получить ее значение по индикатору
+							topic_id - ссылка на идентификатор
+x
